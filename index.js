@@ -165,6 +165,7 @@ module.exports = function gulpSwagger (filename, options) {
 							codeGenSettings.type[0].toUpperCase() +
 							codeGenSettings.type.slice(1, codeGenSettings.type.length) +
 							'Code';
+						var JSONSchemas;
 
 						codeGenSettings.esnext = true;
 						codeGenSettings.swagger = swaggerObject;
@@ -174,37 +175,47 @@ module.exports = function gulpSwagger (filename, options) {
 						// Allow swagger schema to be easily accessed inside templates.
 						codeGenSettings.mustache.swaggerObject = swaggerObject;
 						codeGenSettings.mustache.swaggerJSON = JSON.stringify(swaggerObject);
+						try {
+							codeGenSettings.mustache.swaggerJSON = JSON.stringify(swaggerObject);
+						}
+						catch (error) {
+							codeGenSettings.mustache.swaggerJSON = CircularJSON.stringify(swaggerObject);
+						}
 						// Allow each individual JSON schema to be easily accessed inside templates (for validation purposes).
-						codeGenSettings.mustache.JSONSchemas = JSON.stringify(
-							Object.keys(swaggerObject.paths)
-								.reduce(function reducePaths (newPathCollection, currentPath) {
-									var pathMethods = swaggerObject.paths[currentPath] || {};
-									var pathSchemas = Object.keys(pathMethods)
-										.reduce(function reduceMethods (newMethodCollection, currentMethod) {
-											var methodParameters = (pathMethods[currentMethod].parameters || [])
-												.filter(function filterBodyParameter (parameter) {
-													return parameter.in === 'body';
-												})[0] || {};
-											var methodResponses = pathMethods[currentMethod].responses || {};
-											var methodSchemas = {
-												request: methodParameters.schema,
-												responses: Object.keys(methodResponses)
-													.reduce(function reduceMethods (newResponsesCollection, currentResponse) {
-														var responseSchema = methodResponses[currentResponse].schema || {};
+						JSONSchemas = Object.keys(swaggerObject.paths)
+							.reduce(function reducePaths (newPathCollection, currentPath) {
+								var pathMethods = swaggerObject.paths[currentPath] || {};
+								var pathSchemas = Object.keys(pathMethods)
+									.reduce(function reduceMethods (newMethodCollection, currentMethod) {
+										var methodParameters = (pathMethods[currentMethod].parameters || [])
+											.filter(function filterBodyParameter (parameter) {
+												return parameter.in === 'body';
+											})[0] || {};
+										var methodResponses = pathMethods[currentMethod].responses || {};
+										var methodSchemas = {
+											request: methodParameters.schema,
+											responses: Object.keys(methodResponses)
+												.reduce(function reduceMethods (newResponsesCollection, currentResponse) {
+													var responseSchema = methodResponses[currentResponse].schema || {};
 
-														newResponsesCollection[currentResponse] = responseSchema;
-														return newResponsesCollection;
-													}, {})
-											};
+													newResponsesCollection[currentResponse] = responseSchema;
+													return newResponsesCollection;
+												}, {})
+										};
 
-											newMethodCollection[currentMethod] = methodSchemas;
-											return newMethodCollection;
-										}, {});
+										newMethodCollection[currentMethod] = methodSchemas;
+										return newMethodCollection;
+									}, {});
 
-									newPathCollection[currentPath] = pathSchemas;
-									return newPathCollection;
-								}, {})
-						);
+								newPathCollection[currentPath] = pathSchemas;
+								return newPathCollection;
+							}, {});
+						try {
+							codeGenSettings.mustache.JSONSchemas = JSON.stringify(JSONSchemas);
+						}
+						catch (error) {
+							codeGenSettings.mustache.JSONSchemas = CircularJSON.stringify(JSONSchemas);
+						}
 
 						fileBuffer = CodeGen[codeGenFunction](codeGenSettings);
 					}
