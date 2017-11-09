@@ -174,7 +174,6 @@ module.exports = function gulpSwagger (filename, options) {
 						codeGenSettings.mustache = codeGenSettings.mustache || {};
 						// Allow swagger schema to be easily accessed inside templates.
 						codeGenSettings.mustache.swaggerObject = swaggerObject;
-						codeGenSettings.mustache.swaggerJSON = JSON.stringify(swaggerObject);
 						try {
 							codeGenSettings.mustache.swaggerJSON = JSON.stringify(swaggerObject);
 						}
